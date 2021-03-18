@@ -237,7 +237,7 @@ func ensureBridge(brName string, mtu int, promiscMode, vlanFiltering bool, vlani
 		br.VlanFiltering = &vlanFiltering
 	}
 
-	if 	err := netlink.LinkAdd(br); err != nil && err != syscall.EEXIST {
+	if err := netlink.LinkAdd(br); err != nil && err != syscall.EEXIST {
 		return nil, fmt.Errorf("could not add %q: %v", brName, err)
 	}
 
@@ -423,8 +423,8 @@ func cmdAdd(args *skel.CmdArgs) error {
 	if err != nil {
 		return err
 	}
-	n.BrName = fmt.Sprintf("vlan%d", 315)
-	br, brInterface, err := setupBridge(n, 315)
+	n.BrName = fmt.Sprintf("vlan%d", ipamResult.Vlan)
+	br, brInterface, err := setupBridge(n, ipamResult.Vlan)
 	if err != nil {
 		return err
 	}
@@ -583,7 +583,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 	}
 
 	success = true
-	result.Vlan = 315
+	result.Vlan = ipamResult.Vlan
 	return types.PrintResult(result, cniVersion)
 }
 
@@ -951,7 +951,7 @@ func getVlanLink(masterinterface string, mtu int, vlanid int) (netlink.Link, err
 		return nil, err
 	}
 
-	if mtu<= 0 {
+	if mtu <= 0 {
 		mtu = maskerLink.Attrs().MTU
 	}
 
