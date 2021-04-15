@@ -72,7 +72,7 @@ var _ = Describe("Link", func() {
 		_ = containerNetNS.Do(func(ns.NetNS) error {
 			defer GinkgoRecover()
 
-			hostVeth, containerVeth, err = ip.SetupVeth(fmt.Sprintf(ifaceFormatString, ifaceCounter), mtu, hostNetNS)
+			hostVeth, containerVeth, err = ip.SetupVeth(fmt.Sprintf(ifaceFormatString, ifaceCounter), mtu, hostNetNS, "")
 			if err != nil {
 				return err
 			}
@@ -159,7 +159,7 @@ var _ = Describe("Link", func() {
 			_ = containerNetNS.Do(func(ns.NetNS) error {
 				defer GinkgoRecover()
 
-				_, _, err := ip.SetupVeth(containerVethName, mtu, hostNetNS)
+				_, _, err := ip.SetupVeth(containerVethName, mtu, hostNetNS, "")
 				Expect(err.Error()).To(Equal(fmt.Sprintf("container veth name provided (%s) already exists", containerVethName)))
 
 				return nil
@@ -189,7 +189,7 @@ var _ = Describe("Link", func() {
 		It("returns useful error", func() {
 			_ = containerNetNS.Do(func(ns.NetNS) error {
 				defer GinkgoRecover()
-				_, _, err := ip.SetupVeth(containerVethName, mtu, hostNetNS)
+				_, _, err := ip.SetupVeth(containerVethName, mtu, hostNetNS, "")
 				Expect(err.Error()).To(HavePrefix("failed to move veth to host netns: "))
 
 				return nil
@@ -207,7 +207,7 @@ var _ = Describe("Link", func() {
 			_ = containerNetNS.Do(func(ns.NetNS) error {
 				defer GinkgoRecover()
 
-				hostVeth, _, err := ip.SetupVeth(containerVethName, mtu, hostNetNS)
+				hostVeth, _, err := ip.SetupVeth(containerVethName, mtu, hostNetNS, "")
 				Expect(err).NotTo(HaveOccurred())
 				hostVethName = hostVeth.Name
 				return nil
