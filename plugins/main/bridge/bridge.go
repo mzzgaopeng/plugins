@@ -435,7 +435,14 @@ func cmdAdd(args *skel.CmdArgs) error {
 		return fmt.Errorf("failed to open netns %q: %v", args.Netns, err)
 	}
 	defer netns.Close()
-	vethmac := HardwareAddr(ipamResult.IPs[0].Address.IP.To4())
+
+	// support IPv6
+	var vethmac string
+	for _, ipc := range ipamResult.IPs {
+		if ipc.Version == "4" {
+			vethmac = HardwareAddr(ipamResult.IPs[0].Address.IP.To4())
+		}
+	}
 
 	hostInterface, containerInterface, err := setupVeth(netns, br, args.IfName, n.MTU, n.HairpinMode, n.Vlan, vethmac)
 	if err != nil {
