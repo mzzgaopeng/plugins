@@ -280,7 +280,7 @@ func ensureVlanInterface(br *netlink.Bridge, vlanId int) (netlink.Link, error) {
 			return nil, fmt.Errorf("faild to find host namespace: %v", err)
 		}
 
-		_, brGatewayIface, err := setupVeth(hostNS, br, name, br.MTU, false, vlanId, "")
+		_, brGatewayIface, err := setupVeth(hostNS, br, name, br.MTU, false, vlanId)
 		if err != nil {
 			return nil, fmt.Errorf("faild to create vlan gateway %q: %v", name, err)
 		}
@@ -294,19 +294,17 @@ func ensureVlanInterface(br *netlink.Bridge, vlanId int) (netlink.Link, error) {
 	return brGatewayVeth, nil
 }
 
-func setupVeth(netns ns.NetNS, br *netlink.Bridge, ifName string, mtu int, hairpinMode bool, vlanID int, vethmac string) (*current.Interface, *current.Interface, error) {
+func setupVeth(netns ns.NetNS, br *netlink.Bridge, ifName string, mtu int, hairpinMode bool, vlanID int) (*current.Interface, *current.Interface, error) {
 	contIface := &current.Interface{}
 	hostIface := &current.Interface{}
 
 	err := netns.Do(func(hostNS ns.NetNS) error {
 		// create the veth pair in the container and move host end into host netns
-		hostVeth, containerVeth, err := ip.SetupVeth(ifName, mtu, hostNS, vethmac)
+		hostVeth, containerVeth, err := ip.SetupVeth(ifName, mtu, hostNS)
 		if err != nil {
 			return err
 		}
 		contIface.Name = containerVeth.Name
-		//contIface.Mac = containerVeth.HardwareAddr.String()
-		contIface.Mac = vethmac
 		contIface.Sandbox = netns.Path()
 		hostIface.Name = hostVeth.Name
 		return nil
@@ -436,15 +434,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 	}
 	defer netns.Close()
 
-	// support IPv6
-	var vethmac string
-	for _, ipc := range ipamResult.IPs {
-		if ipc.Version == "4" {
-			vethmac = HardwareAddr(ipamResult.IPs[0].Address.IP.To4())
-		}
-	}
-
-	hostInterface, containerInterface, err := setupVeth(netns, br, args.IfName, n.MTU, n.HairpinMode, n.Vlan, vethmac)
+	hostInterface, containerInterface, err := setupVeth(netns, br, args.IfName, n.MTU, n.HairpinMode, n.Vlan)
 	if err != nil {
 		return err
 	}
@@ -596,14 +586,6 @@ func cmdAdd(args *skel.CmdArgs) error {
 	return types.PrintResult(result, cniVersion)
 }
 
-func HardwareAddr(ip []byte) string {
-	var iptomac []byte
-	var macfix = []byte{102, 234}
-	iptomac = append(iptomac, macfix...)
-	iptomac = append(iptomac, ip...)
-	mac := net.HardwareAddr.String(iptomac)
-	return mac
-}
 func cmdDel(args *skel.CmdArgs) error {
 	n, _, err := loadNetConf(args.StdinData)
 	if err != nil {

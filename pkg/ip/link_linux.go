@@ -33,17 +33,12 @@ var (
 	ErrLinkNotFound = errors.New("link not found")
 )
 
-func makeVethPair(name, peer string, mtu int, vethmac string) (netlink.Link, error) {
-	mac, err := net.ParseMAC(vethmac)
-	if err != nil {
-		return nil, err
-	}
+func makeVethPair(name, peer string, mtu int) (netlink.Link, error) {
 	veth := &netlink.Veth{
 		LinkAttrs: netlink.LinkAttrs{
-			Name:         name,
-			Flags:        net.FlagUp,
-			MTU:          mtu,
-			HardwareAddr: mac,
+			Name:  name,
+			Flags: net.FlagUp,
+			MTU:   mtu,
 		},
 		PeerName: peer,
 	}
@@ -67,7 +62,7 @@ func peerExists(name string) bool {
 	return true
 }
 
-func makeVeth(name, vethPeerName string, mtu int, vethmac string) (peerName string, veth netlink.Link, err error) {
+func makeVeth(name, vethPeerName string, mtu int) (peerName string, veth netlink.Link, err error) {
 	for i := 0; i < 10; i++ {
 		if vethPeerName != "" {
 			peerName = vethPeerName
@@ -78,7 +73,7 @@ func makeVeth(name, vethPeerName string, mtu int, vethmac string) (peerName stri
 			}
 		}
 
-		veth, err = makeVethPair(name, peerName, mtu, vethmac)
+		veth, err = makeVethPair(name, peerName, mtu)
 		switch {
 		case err == nil:
 			return
@@ -137,8 +132,8 @@ func ifaceFromNetlinkLink(l netlink.Link) net.Interface {
 // devices and move the host-side veth into the provided hostNS namespace.
 // hostVethName: If hostVethName is not specified, the host-side veth name will use a random string.
 // On success, SetupVethWithName returns (hostVeth, containerVeth, nil)
-func SetupVethWithName(contVethName, hostVethName string, mtu int, hostNS ns.NetNS, vethmac string) (net.Interface, net.Interface, error) {
-	hostVethName, contVeth, err := makeVeth(contVethName, hostVethName, mtu, vethmac)
+func SetupVethWithName(contVethName, hostVethName string, mtu int, hostNS ns.NetNS) (net.Interface, net.Interface, error) {
+	hostVethName, contVeth, err := makeVeth(contVethName, hostVethName, mtu)
 	if err != nil {
 		return net.Interface{}, net.Interface{}, err
 	}
@@ -180,8 +175,8 @@ func SetupVethWithName(contVethName, hostVethName string, mtu int, hostNS ns.Net
 // Call SetupVeth from inside the container netns.  It will create both veth
 // devices and move the host-side veth into the provided hostNS namespace.
 // On success, SetupVeth returns (hostVeth, containerVeth, nil)
-func SetupVeth(contVethName string, mtu int, hostNS ns.NetNS, vethmac string) (net.Interface, net.Interface, error) {
-	return SetupVethWithName(contVethName, "", mtu, hostNS, vethmac)
+func SetupVeth(contVethName string, mtu int, hostNS ns.NetNS) (net.Interface, net.Interface, error) {
+	return SetupVethWithName(contVethName, "", mtu, hostNS)
 }
 
 // DelLinkByName removes an interface link.
